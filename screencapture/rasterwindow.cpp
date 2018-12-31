@@ -7,9 +7,6 @@
 
 #include <windows.h>
 
-#include "xframesegmentation.h"
-#include "xframeassembler.h"
-
 #include <list>
 
 RasterWindow::RasterWindow(QWindow *parent)
@@ -105,9 +102,6 @@ void RasterWindow::exposeEvent(QExposeEvent *)
     }
 }
 
-
-
-
 bool RasterWindow::initScreenSnapshotSystem()
 {
     m_systemScreenW = GetSystemMetrics(SM_CXSCREEN);
@@ -135,7 +129,7 @@ bool RasterWindow::makeScreenSnapshot()
 {
     // https://www.codeproject.com/Articles/5051/Various-methods-for-capturing-the-screen
 
-    // Захоплення
+    // Capture
     double current_time1 = m_xtimer.getTime();
     BOOL captureResult = BitBlt(m_hCaptureDC, 0, 0, m_systemScreenW, m_systemScreenH,
                                 m_hDesktopDC, 0, 0, SRCCOPY | CAPTUREBLT);
@@ -151,7 +145,7 @@ bool RasterWindow::makeScreenSnapshot()
 
     m_numSnapshots++;
 
-    // Копіювання даних з захопленого кадра
+    // Copy data from captured frame
     bool copyResult = m_screenFrame.copyCapturedData(m_hCaptureDC, m_hCaptureBitmap, m_numSnapshots);
     if (!copyResult)
     {
@@ -167,64 +161,19 @@ bool RasterWindow::makeScreenSnapshot()
     return true;
 }
 
-
-
-
 void RasterWindow::visualiseScreenImage()
 {
-
     //m_imgScreen.fill(QColor(0, 0, 96));
 
     //drawPoint(400, 300);
 
     makeScreenSnapshot();
 
-    m_segmenter.lockFrame(m_screenFrame);
-
-    std::list<XImageSegment> vSegments;
-
-    while(1)
-    {
-        XImageSegment segment;
-        bool isValid = m_segmenter.getNextSegment(&segment);
-        if (!isValid)
-        {
-            break;
-        }
-
-        vSegments.push_back(segment);
-    }
-
-    // передали по мережі
-
-    // отримали по мережі
-
-    XFrameAssembler assembler;
-    assembler.init(m_systemScreenW, m_systemScreenH);   // TODO: real dimensions to be transmitted over network
-
-    bool isFail = false;
-    for (auto &segment : vSegments)
-    {
-        bool isValid = assembler.addSegment(segment);
-        if (!isValid)
-        {
-            isFail = true;
-            break;
-        }
-    }
-    if (isFail)
-    {
-        Beep(1000, 1000);
-    }
-    const XScreenFrame &assembledFrame = assembler.getFrame();
-
-
     double current_time4 = m_xtimer.getTime();
 
     if (1)
     {
-        //const char *m_pCaptureData = m_screenFrame.getImageDataPtr();
-        const char *m_pCaptureData = assembledFrame.getImageDataPtr();
+        const char *m_pCaptureData = m_screenFrame.getImageDataPtr();
 
         for (int y = 0; y < m_screenH; y++)
         {
@@ -239,11 +188,11 @@ void RasterWindow::visualiseScreenImage()
             {
                 //m_imgScreen.setPixelColor(QPoint(i, y), QColor((10+i + j)%255, abs((256+i-y))%255, (128+i*2+y)%255));
 
-                int color_original = 0;
+                int color = 0;
                 {
-                    color_original = ((int*)(srcScanLineStart + (ptrdiff_t)(4*x)))[0];
+                    color = ((int*)(srcScanLineStart + (ptrdiff_t)(4*x)))[0];
 
-                    char * pchannels = (char*)&color_original;
+                    char * pchannels = (char*)&color;
                     char blue = pchannels[0];
                     char red = pchannels[2];
 
@@ -252,24 +201,11 @@ void RasterWindow::visualiseScreenImage()
                     pchannels[2] = blue;
                 }
 
-                // передача пікселя по інтернету
-                // ----------------
-                uint16_t color_packed = convertXBGR8888toRGB565(color_original);
-                // transfer_to_venus(color_packed)
-
-                // отримуємо
-                //int color = color_original;
-                int color = convertRGB565toXRGB8888(color_packed);
-                //---------------
-
-
-
                 if (1)
                 {
                     uchar * dstPixelPtr = dstScanLineStartPtr + 4*x;
                     int *pDstColor = (int*)dstPixelPtr;
 
-                    //*pDstColor = color;
                     pDstColor[0] = color;
                 }
                 else
@@ -314,7 +250,6 @@ void RasterWindow::render(QPainter *painter)
 {
     //painter->drawText(QRectF(0, 0, width(), height()), Qt::AlignCenter, QStringLiteral("QWindow"));
 }
-
 
 void RasterWindow::putPixel(float _xc, float _yc, int pixel_size, QColor color)
 {

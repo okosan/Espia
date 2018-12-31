@@ -10,8 +10,6 @@
 #include "xtiming.h"
 
 #include "xscreenframe.h"
-#include "xframesegmentation.h"
-
 
 struct Point2D
 {
@@ -85,8 +83,6 @@ private:
 
     XScreenFrame m_screenFrame;
     long m_numSnapshots;
-
-    XFrameSegmentation  m_segmenter;
 
     QTimer timer;
 

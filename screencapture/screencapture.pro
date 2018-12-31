@@ -4,15 +4,11 @@ TARGET = screencapture
 
 INCLUDEPATH += $$PWD
 SOURCES += $$PWD/rasterwindow.cpp \
-    xframesegmentation.cpp \
-    xscreenframe.cpp \
-    xframeassembler.cpp
+    xscreenframe.cpp
 
 HEADERS += $$PWD/rasterwindow.h \
     xtiming.h \
-    xframesegmentation.h \
-    xscreenframe.h \
-    xframeassembler.h
+    xscreenframe.h
 
 SOURCES += \
     main.cpp
