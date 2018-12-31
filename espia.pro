@@ -2,7 +2,8 @@ TEMPLATE = subdirs
 
 # List all dependencies
 # TODO: add thirdparty files there
-#SUBDIRS = \
+SUBDIRS = \
+     screencapture
 #    thirdparty/
 
 CONFIG += ordered
