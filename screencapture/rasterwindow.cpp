@@ -168,6 +168,7 @@ void RasterWindow::visualiseScreenImage()
     //drawPoint(400, 300);
 
     makeScreenSnapshot();
+    //m_imgScreen.drawPoint(400, 300);
 
     double current_time4 = m_xtimer.getTime();
 
@@ -183,40 +184,48 @@ void RasterWindow::visualiseScreenImage()
             p.y = 0;
         }
 
+        // Calculate offsets of image capture into destination surfac
+        const int min_x = 0;
+        const int max_x = m_systemScreenW - m_screenW;
+
+        const int min_y = 0;
+        const int max_y = m_systemScreenH - m_screenH;
+
         int offset_x = p.x - m_screenW/2;
         int offset_y = p.y - m_screenH/2;
 
-        // TODO: fix and improve borders so that they do not overrun display area
-        int min_x = m_screenW/2;
-        int min_y = m_screenH/2;
+        offset_x = std::max(offset_x, min_x);
+        offset_x = std::min(offset_x, max_x);
 
-        int max_x = m_systemScreenW - m_screenW;
-        int max_y = m_systemScreenH - m_screenH;
+        offset_y = std::max(offset_y, min_y);
+        offset_y = std::min(offset_y, max_y);
+
+        // TODO: disable mouse croshair by default later
+        const bool debug_draw_mouse_point = true;
+        const int debug_cursor_size = 30;
+        int mouse_dst_x = p.x - offset_x;
+        int mouse_dst_y = p.y - offset_y;
 
         for (int dst_y = 0; dst_y < m_screenH; dst_y++)
         {
-            int src_y = dst_y + offset_y;
-            src_y = std::max(src_y, min_y);
-            src_y = std::min(src_y, max_y);
-            // ...
+            const int src_y = dst_y + offset_y;
+
             const ptrdiff_t lineSizeBytes = 4 * m_systemScreenW;
             const ptrdiff_t currentLineOffsetBytes = lineSizeBytes * src_y;
             const ptrdiff_t srcScanLineStart = (ptrdiff_t)m_pCaptureData + (ptrdiff_t)currentLineOffsetBytes;
 
-            uchar * dstScanLineStartPtr = m_imgScreen.scanLine(dst_y);
+            const uchar * dstScanLineStartPtr = m_imgScreen.scanLine(dst_y);
 
             for (int dst_x = 0; dst_x < m_screenW; dst_x++)
             {
-                int src_x = dst_x + offset_x;
-                src_x = std::max(src_x, min_x);
-                src_x = std::min(src_x, max_x);
+                const int src_x = dst_x + offset_x;
+
 
                 //m_imgScreen.setPixelColor(QPoint(i, y), QColor((10+i + j)%255, abs((256+i-y))%255, (128+i*2+y)%255));
 
-                int color = 0;
+                int color = ((int*)(srcScanLineStart + (ptrdiff_t)(4*src_x)))[0];
+                // collor swizzle - swap red-blue
                 {
-                    color = ((int*)(srcScanLineStart + (ptrdiff_t)(4*src_x)))[0];
-
                     char * pchannels = (char*)&color;
                     char blue = pchannels[0];
                     char red = pchannels[2];
@@ -226,8 +235,19 @@ void RasterWindow::visualiseScreenImage()
                     pchannels[2] = blue;
                 }
 
+                // DEBUG: draw mouse croshair
+                if (debug_draw_mouse_point &&
+                    (((abs(dst_x - mouse_dst_x) < debug_cursor_size) && (dst_y == mouse_dst_y)) ||
+                     ((dst_x == mouse_dst_x) && (abs(dst_y - mouse_dst_y) < debug_cursor_size))
+                    ))
+                {
+                    color = 0;  // black color for crosshair
+                }
+
+
                 if (1)
                 {
+                    // Use the faster direct output to canvas
                     uchar * dstPixelPtr = dstScanLineStartPtr + 4*dst_x;
                     int *pDstColor = (int*)dstPixelPtr;
 
