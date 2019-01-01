@@ -18,11 +18,11 @@ RasterWindow::RasterWindow(QWindow *parent)
 
     setGeometry(600, 200, 900, 700);
 
-    m_screenW = 800;
-    m_screenH = 600;
+    m_screenW = 640;
+    m_screenH = 640;
 
     // QImage imgScreen(800, 600, QImage::Format_RGBX8888);
-    m_imgScreen = QImage(800, 600, QImage::Format_RGBX8888);
+    m_imgScreen = QImage(m_screenW, m_screenH, QImage::Format_RGBX8888);
 
     initScreenSnapshotSystem();
 
@@ -175,22 +175,47 @@ void RasterWindow::visualiseScreenImage()
     {
         const char *m_pCaptureData = m_screenFrame.getImageDataPtr();
 
-        for (int y = 0; y < m_screenH; y++)
+        // Use mouse pointer coords to center captured image view
+        POINT p;
+        if (!GetCursorPos(&p))
         {
+            p.x = 0;
+            p.y = 0;
+        }
+
+        int offset_x = p.x - m_screenW/2;
+        int offset_y = p.y - m_screenH/2;
+
+        // TODO: fix and improve borders so that they do not overrun display area
+        int min_x = m_screenW/2;
+        int min_y = m_screenH/2;
+
+        int max_x = m_systemScreenW - m_screenW;
+        int max_y = m_systemScreenH - m_screenH;
+
+        for (int dst_y = 0; dst_y < m_screenH; dst_y++)
+        {
+            int src_y = dst_y + offset_y;
+            src_y = std::max(src_y, min_y);
+            src_y = std::min(src_y, max_y);
             // ...
-            ptrdiff_t lineSizeBytes = 4 * m_systemScreenW;
-            ptrdiff_t currentLineOffsetBytes = lineSizeBytes * y;
-            ptrdiff_t srcScanLineStart = (ptrdiff_t)m_pCaptureData + (ptrdiff_t)currentLineOffsetBytes;
+            const ptrdiff_t lineSizeBytes = 4 * m_systemScreenW;
+            const ptrdiff_t currentLineOffsetBytes = lineSizeBytes * src_y;
+            const ptrdiff_t srcScanLineStart = (ptrdiff_t)m_pCaptureData + (ptrdiff_t)currentLineOffsetBytes;
 
-            uchar * dstScanLineStartPtr = m_imgScreen.scanLine(y);
+            uchar * dstScanLineStartPtr = m_imgScreen.scanLine(dst_y);
 
-            for (int x = 0; x < m_screenW; x++)
+            for (int dst_x = 0; dst_x < m_screenW; dst_x++)
             {
+                int src_x = dst_x + offset_x;
+                src_x = std::max(src_x, min_x);
+                src_x = std::min(src_x, max_x);
+
                 //m_imgScreen.setPixelColor(QPoint(i, y), QColor((10+i + j)%255, abs((256+i-y))%255, (128+i*2+y)%255));
 
                 int color = 0;
                 {
-                    color = ((int*)(srcScanLineStart + (ptrdiff_t)(4*x)))[0];
+                    color = ((int*)(srcScanLineStart + (ptrdiff_t)(4*src_x)))[0];
 
                     char * pchannels = (char*)&color;
                     char blue = pchannels[0];
@@ -203,7 +228,7 @@ void RasterWindow::visualiseScreenImage()
 
                 if (1)
                 {
-                    uchar * dstPixelPtr = dstScanLineStartPtr + 4*x;
+                    uchar * dstPixelPtr = dstScanLineStartPtr + 4*dst_x;
                     int *pDstColor = (int*)dstPixelPtr;
 
                     pDstColor[0] = color;
@@ -211,7 +236,7 @@ void RasterWindow::visualiseScreenImage()
                 else
                 {
                     QColor colorOutput( (QRgb)(color) );
-                    m_imgScreen.setPixelColor(QPoint(x, y), colorOutput);
+                    m_imgScreen.setPixelColor(QPoint(dst_x, dst_y), colorOutput);
                 }
             }
         }
