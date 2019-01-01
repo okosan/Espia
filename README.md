@@ -10,6 +10,11 @@ Spanish-English quick lookup word-card dictionary.
 
 ## How to use
 TODO: work in progress
+Espia captures screen image and runs OCR (object character recogtion) in area under mouse pointer to extract spanish word.
+This is very similar to how Abby Lingvo dictionary does things, but the goal is to have more data displayed in word card than Lingvo.
+If word is detected under mouse, the word is fetched into http://www.spanishdict.com over plain HTTP to lookup for translation/wordcard data.
+Wordcard is cached on disk to reduce future lookup time and allow offline mode. The word card for translation is displayed as window overlay over the mouse pointer.
+Wordcard will contain word translation, noun with article and for verbs it will display verb conjugation table.
 
 ## Legal Stuff
 TODO: work in progress
