@@ -18,9 +18,6 @@ RasterWindow::RasterWindow(QWindow *parent)
 
     setGeometry(600, 200, 900, 700);
 
-    m_screenW = 640;
-    m_screenH = 640;
-
     // QImage imgScreen(800, 600, QImage::Format_RGBX8888);
     m_imgScreen = QImage(m_screenW, m_screenH, QImage::Format_RGBX8888);
 
@@ -34,13 +31,6 @@ RasterWindow::RasterWindow(QWindow *parent)
     timer.start();
 
     m_xtimer.init();
-
-    m_time1 = 0;
-    m_time2 = 0;
-    m_time3 = 0;
-
-    m_numSnapshots = 0;
-    m_numFrameRenderings = 0;
 }
 
 RasterWindow::~RasterWindow()
@@ -161,16 +151,12 @@ bool RasterWindow::makeScreenSnapshot()
     return true;
 }
 
+// Save data to m_imgScreen
 void RasterWindow::visualiseScreenImage()
 {
-    //m_imgScreen.fill(QColor(0, 0, 96));
-
-    //drawPoint(400, 300);
-
     makeScreenSnapshot();
-    //m_imgScreen.drawPoint(400, 300);
 
-    double current_time4 = m_xtimer.getTime();
+    const double current_time4 = m_xtimer.getTime();
 
     if (1)
     {
@@ -206,6 +192,12 @@ void RasterWindow::visualiseScreenImage()
         int mouse_dst_x = p.x - offset_x;
         int mouse_dst_y = p.y - offset_y;
 
+        // update stored mouse coords (OCR will need it later)
+        mouse_screen_x = mouse_dst_x;
+        mouse_screen_y = mouse_dst_y;
+        mouse_global_x = p.x;
+        mouse_global_y = p.y;
+
         for (int dst_y = 0; dst_y < m_screenH; dst_y++)
         {
             const int src_y = dst_y + offset_y;
@@ -214,13 +206,11 @@ void RasterWindow::visualiseScreenImage()
             const ptrdiff_t currentLineOffsetBytes = lineSizeBytes * src_y;
             const ptrdiff_t srcScanLineStart = (ptrdiff_t)m_pCaptureData + (ptrdiff_t)currentLineOffsetBytes;
 
-            const uchar * dstScanLineStartPtr = m_imgScreen.scanLine(dst_y);
+            uchar * dstScanLineStartPtr = m_imgScreen.scanLine(dst_y);
 
             for (int dst_x = 0; dst_x < m_screenW; dst_x++)
             {
                 const int src_x = dst_x + offset_x;
-
-
                 //m_imgScreen.setPixelColor(QPoint(i, y), QColor((10+i + j)%255, abs((256+i-y))%255, (128+i*2+y)%255));
 
                 int color = ((int*)(srcScanLineStart + (ptrdiff_t)(4*src_x)))[0];
@@ -244,7 +234,6 @@ void RasterWindow::visualiseScreenImage()
                     color = 0;  // black color for crosshair
                 }
 
-
                 if (1)
                 {
                     // Use the faster direct output to canvas
@@ -261,13 +250,25 @@ void RasterWindow::visualiseScreenImage()
             }
         }
     }
-    double current_time5 = m_xtimer.getTime();
+
+    const double current_time5 = m_xtimer.getTime();
 
     m_time3 += (current_time5 - current_time4);
 
     m_numFrameRenderings ++;
 }
 
+void RasterWindow::runOcrSegmentation()
+{
+    // use m_imgScreen as a source input for OCR detection
+    // TODO: implement
+}
+
+void RasterWindow::drawOcrOverlay(QPainter &painter)
+{
+    // TODO: this is debug stab, make real ocr detection and drawing
+    painter.drawRect(mouse_screen_x + 20, mouse_screen_y + 20, 100, 30);
+}
 
 void RasterWindow::renderNow()
 {
@@ -283,8 +284,12 @@ void RasterWindow::renderNow()
     painter.fillRect(0, 0, width(), height(), Qt::red);
 
     visualiseScreenImage();
+    runOcrSegmentation();
 
     painter.drawImage(0, 0, m_imgScreen);
+
+    drawOcrOverlay(painter);
+
     render(&painter);
 
     m_backingStore->endPaint();

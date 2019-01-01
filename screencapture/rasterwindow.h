@@ -54,10 +54,10 @@ private:
     bool m_update_pending;
 
     QImage m_imgScreen;
-    int m_screenW;
-    int m_screenH;
+    int m_screenW = 640;
+    int m_screenH = 640;
 
-    void visualiseScreenImage();
+
 
     void putPixel(float _xc, float _yc, int pixel_size = 5, QColor color = QColor(200, 210, 0));
     void drawPoint(const Point2D &p, int point_size = 5);
@@ -67,6 +67,11 @@ private:
 
     bool initScreenSnapshotSystem();
     bool makeScreenSnapshot();
+
+    void visualiseScreenImage();
+
+    void runOcrSegmentation();
+    void drawOcrOverlay(QPainter &painter);
 
     int m_systemScreenW;
     int m_systemScreenH;
@@ -82,17 +87,21 @@ private:
 
 
     XScreenFrame m_screenFrame;
-    long m_numSnapshots;
+    long m_numSnapshots = 0;
+    int mouse_screen_x = 0;
+    int mouse_screen_y = 0;
+    int mouse_global_x = 0;
+    int mouse_global_y = 0;
 
     QTimer timer;
 
     XTiming m_xtimer;
-    double m_time1;
-    double m_time2;
-    double m_time3;
+    double m_time1 = 0;
+    double m_time2 = 0;
+    double m_time3 = 0;
 
 
-    long m_numFrameRenderings;
+    long m_numFrameRenderings = 0;
 
 private slots:
     void screenCaptureTimerSlot();
